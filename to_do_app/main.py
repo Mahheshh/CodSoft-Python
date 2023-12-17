@@ -5,81 +5,82 @@ import pytermgui as ptg
 tasks = []
 
 
-class MyButton(ptg.Button):
+class TaskButton(ptg.Button):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
 
-def get_tasks(manager: ptg.WindowManager) -> list[ptg.Label, ptg.Label]:
-    labeled_tasks = []
+def get_task_widgets(manager: ptg.WindowManager) -> list[ptg.Label, TaskButton]:
+    task_widgets = []
 
-    for items in tasks:
-        for task, task_staus in items.items():
-            labeled_tasks.append(
-                (
-                    ptg.Label(task, parent_align=0, position=1),
-                    MyButton("done" if task_staus else "pending", lambda btn: update_tasks(manager, btn) ,id=f"{task}"),
-                )
+    for task_dict in tasks:
+        for task_name, task_status in task_dict.items():
+            label = ptg.Label(task_name, parent_align=0, position=1)
+            button = TaskButton(
+                "done" if task_status else "pending",
+                lambda btn: handle_task_update(manager, btn),
+                id=f"{task_name}",
             )
+            task_widgets.append((label, button))
 
-    return labeled_tasks
+    return task_widgets
 
 
-def parse_task(manager: ptg.WindowManager, modal: ptg.Window) -> str:
+def parse_and_add_task(manager: ptg.WindowManager, modal: ptg.Window) -> None:
     global tasks
 
     for widget in modal:
         if isinstance(widget, ptg.InputField):
-            _task = widget.value
-            tasks.append({_task: False})
+            new_task = widget.value
+            tasks.append({new_task: False})
 
     show_tasks_and_status(manager)
     modal.close()
 
 
-def add_tasks(manager: ptg.WindowManager) -> None:
+def show_add_task_modal(manager: ptg.WindowManager) -> None:
     modal = ptg.Window(
-        "Task To Add",
+        "Add Task",
         "",
-        ptg.InputField("Eat food...", prompt="Task: ", id="task_enput"),
+        ptg.InputField("Eat food...", prompt="Task: ", id="task_input"),
         "",
         ptg.Container(
             ptg.Splitter(
-                ptg.Button("Enter", lambda *_: parse_task(manager, modal)),
+                ptg.Button("Enter", lambda *_: parse_and_add_task(manager, modal)),
                 ptg.Button("Close", lambda *_: modal.close()),
             )
         ),
     ).center()
     manager.add(modal)
 
-def update_tasks(manager: ptg.WindowManager, button: ptg.Button) -> None:  
+
+def handle_task_update(manager: ptg.WindowManager, button: TaskButton) -> None:
     global tasks
 
-    modal = ptg.Window(
-        "Are You Sure You Want To Mark this task as done"
-        "",
-        ptg.Container(
-            ptg.Splitter(
-                ptg.Button("Yes", lambda *_: mark_as_done(button.id)),
-                ptg.Button("Close", lambda *_: modal.close())
-            )
-        )
-    ).center()
-
-    def mark_as_done(task_name: str) -> None:
+    def mark_task_as_done(task_name: str) -> None:
         for task in tasks:
             if task_name in task.keys():
                 task[task_name] = True
         modal.close()
         show_tasks_and_status(manager)
 
+    modal = ptg.Window(
+        "Mark Task as Done?",
+        "",
+        ptg.Container(
+            ptg.Splitter(
+                ptg.Button("Yes", lambda *_: mark_task_as_done(button.id)),
+                ptg.Button("Close", lambda *_: modal.close()),
+            )
+        ),
+    ).center()
+
     manager.add(modal)
 
-def _confirm_quit(manager: ptg.WindowManager) -> None:
-    """Creates an "Are you sure you want to quit" modal window"""
 
+def confirm_quit(manager: ptg.WindowManager) -> None:
     modal = ptg.Window(
-        "Are you sure you want to quit?",
+        "Confirm Quit?",
         "",
         ptg.Container(
             ptg.Splitter(
@@ -94,21 +95,21 @@ def _confirm_quit(manager: ptg.WindowManager) -> None:
 
 
 def show_tasks_and_status(manager: ptg.WindowManager) -> None:
-    tasks = get_tasks(manager)
+    task_widgets = get_task_widgets(manager)
 
-    tasks_col = ptg.Window(*[task[0] for task in tasks], id="tasks_col").set_title(
-        "Tasks"
-    )
+    tasks_column = ptg.Window(
+        *[task[0] for task in task_widgets], id="tasks_col"
+    ).set_title("Tasks")
 
-    tasks_status_col = ptg.Window(
-        *[task[1] for task in tasks], id="tasks_status_col"
+    status_column = ptg.Window(
+        *[task[1] for task in task_widgets], id="tasks_status_col"
     ).set_title("Tasks Status")
     for window in manager._windows:
         if window.id in ["tasks_col", "tasks_status_col"]:
             manager.remove(window)
 
-    manager.add(tasks_status_col, assign="body_right")
-    manager.add(tasks_col, assign="body")
+    manager.add(status_column, assign="body_right")
+    manager.add(tasks_column, assign="body")
 
 
 def define_layout() -> ptg.Layout:
@@ -121,7 +122,7 @@ def define_layout() -> ptg.Layout:
     layout.add_slot("Body right", width=0.2)
     layout.add_break()
 
-    layout.add_slot("footer", height=1)
+    layout.add_slot("Footer", height=1)
 
     return layout
 
@@ -137,8 +138,8 @@ def main() -> None:
 
         footer = ptg.Window(
             ptg.Splitter(
-                ptg.Button("Add Task", lambda *_: add_tasks(manager)),
-                ptg.Button("Quit", lambda *_: _confirm_quit(manager)),
+                ptg.Button("Add Task", lambda *_: show_add_task_modal(manager)),
+                ptg.Button("Quit", lambda *_: confirm_quit(manager)),
             ),
             box="EMPTY",
         )
