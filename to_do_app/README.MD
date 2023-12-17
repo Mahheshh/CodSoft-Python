@@ -18,7 +18,7 @@ Run the `to_do_app/main.py` file to start the To-Do App:
 ## ScreenShots
 
 App
-![Alt text](.preview/app.png)
+![Alt text](preview/app.png)
 
 Add New Tasks
 ![Alt text](preview/addtasks.png)
