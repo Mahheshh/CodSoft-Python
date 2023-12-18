@@ -45,19 +45,18 @@ def play_again_callback(manager: ptg.WindowManager, modal: ptg.Container) -> Non
 
 def game_callback(button: ptg.Button, manager: ptg.WindowManager) -> None:
     computer_choice = choice(["🗻", "📃", "✂"])
-    result = "WIN"
-    result = "WIN"
+    result = "[bold #00FF00]WIN"
     if computer_choice == button.label:
         result = "TIE"
     elif computer_choice == "🗻" and button.label == "✂":
-        result = "LOOSE"
+        result = "[bold #FF0000]LOOSE"
     elif computer_choice == "📃" and button.label == "🗻":
-        result = "LOOSE"
+        result = "[bold #FF0000]LOOSE"
 
     modal = ptg.Container(
-        ptg.Label(f"You have selected {button.label}"),
+        ptg.Label(f"👨 have selected: {button.label}"),
         "",
-        ptg.Label(f"Computer Has selected {computer_choice}"),
+        ptg.Label(f"💻 Has selected: {computer_choice}"),
         "",
         ptg.Label(f"You {result}"),
         ptg.Splitter(
