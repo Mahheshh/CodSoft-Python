@@ -1,37 +1,7 @@
+from random import choice
 import sys
 
 import pytermgui as ptg
-
-
-def close_modal(manager: ptg.WindowManager, modal: ptg.Window) -> None:
-    for window in manager._windows:
-        if modal not in window:
-            continue
-        for widget in window._widgets:
-            if widget.id == modal.id:
-                window.remove(modal)
-
-
-def attach_new_modal(window: ptg.Window, modal: ptg.Window) -> None:
-    window._add_widget(modal)
-
-
-def play_again_callback(manager: ptg.WindowManager, modal: ptg.Container) -> None:
-    close_modal(manager, modal)
-
-
-def game_callback(button: ptg.Button, manager: ptg.WindowManager) -> None:
-    modal = ptg.Container(
-        f"You have selected {button.label}",
-        ptg.Button("Play Again", lambda *_: play_again_callback(manager, modal)),
-    ).center()
-
-    for window in manager._windows:
-        if window.id == "game_window":
-            for widget in window._widgets:
-                if widget.id == "game_window_container":
-                    window.remove(widget)
-            window._add_widget(modal)
 
 
 def define_layout() -> ptg.Layout:
@@ -48,32 +18,90 @@ def define_layout() -> ptg.Layout:
     return layout
 
 
-def main():
-    with ptg.WindowManager() as manager:
-        manager.layout = define_layout()
+def close_modal(manager: ptg.WindowManager, modal: ptg.Window) -> None:
+    for window in manager._windows:
+        if modal in window:
+            window.remove(modal)
 
-        header = ptg.Window("Rock-Paper-Scissors", box="EMPTY")
-        manager.add(header, assign="header")
 
-        game_buttons = ptg.Container(
+def remove_widget_by_id(manager: ptg.WindowManager, widget_id: str) -> ptg.Window:
+    for window in manager._windows:
+        for widget in window._widgets:
+            if widget.id == widget_id:
+                close_modal(manager, widget)
+                return window
+
+
+def remove_all_windows(manager: ptg.WindowManager) -> None:
+    for window in manager._windows:
+        manager.remove(window)
+
+
+def play_again_callback(manager: ptg.WindowManager, modal: ptg.Container) -> None:
+    close_modal(manager, modal)
+    remove_all_windows(manager)
+    initialize_screen(manager)
+
+
+def game_callback(button: ptg.Button, manager: ptg.WindowManager) -> None:
+    computer_choice = choice(["🗻", "📃", "✂"])
+    result = "WIN"
+    result = "WIN"
+    if computer_choice == button.label:
+        result = "TIE"
+    elif computer_choice == "🗻" and button.label == "✂":
+        result = "LOOSE"
+    elif computer_choice == "📃" and button.label == "🗻":
+        result = "LOOSE"
+
+    modal = ptg.Container(
+        ptg.Label(f"You have selected {button.label}"),
+        "",
+        ptg.Label(f"Computer Has selected {computer_choice}"),
+        "",
+        ptg.Label(f"You {result}"),
+        ptg.Splitter(
+            ptg.Button("Play Again", lambda *_: play_again_callback(manager, modal)),
+            ptg.Button("Quit", lambda *_: manager.stop()),
+        ),
+    ).center()
+
+    window = remove_widget_by_id(manager, "game_window_container")
+    window._add_widget(modal)
+
+
+def get_game_window(manager: ptg.WindowManager) -> ptg.Window:
+    return ptg.Window(
+        ptg.Container(
             ptg.Splitter(
                 ptg.Button("🗻", lambda button: game_callback(button, manager)),
                 ptg.Button("📃", lambda button: game_callback(button, manager)),
                 ptg.Button("✂", lambda button: game_callback(button, manager)),
             ),
             id="game_window_container",
-        )
+        ),
+        id="game_window",
+    )
 
-        game_window = ptg.Window(game_buttons, id="game_window")
-        manager.add(game_window, assign="body")
 
-        footer_buttons = ptg.Splitter(
-            ptg.Button("Play Again", lambda *_: True),
-            ptg.Button("Quit", lambda *_: manager.stop()),
-        )
-        footer = ptg.Window(footer_buttons, box="EMPTY")
-        manager.add(footer, assign="footer")
+def initialize_screen(manager: ptg.WindowManager) -> None:
+    header = ptg.Window("Rock-Paper-Scissors", box="EMPTY")
+    manager.add(header, assign="header")
 
+    game_window = get_game_window(manager)
+    manager.add(game_window, assign="body")
+
+    footer_buttons = ptg.Splitter(
+        ptg.Button("Quit", lambda *_: manager.stop()),
+    )
+    footer = ptg.Window(footer_buttons, box="EMPTY")
+    manager.add(footer, assign="footer")
+
+
+def main():
+    with ptg.WindowManager() as manager:
+        manager.layout = define_layout()
+        initialize_screen(manager)
         manager.run()
 
 
